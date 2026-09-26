@@ -1,3 +1,7 @@
+# Binario de Neovim empaquetado (~70MB extraído) - NO subir al repo,
+# se descarga solo al correr nvim-portable.sh (o cópialo al USB para uso offline)
+/tools/
+
 # Datos, estado y caché portable (plugins, mason, jdtls, lazy) - NO subir al repo
 /data/
 /state/
