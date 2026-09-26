@@ -1,3 +1,11 @@
+-- Requiere Neovim 0.9+ (vim.keymap, lazy.nvim, LSP moderno).
+-- Si ves este mensaje, actualiza Neovim en esa máquina, no es error de la config.
+if vim.fn.has("nvim-0.9") == 0 then
+  local ver = vim.api.nvim_exec2("version", { output = true }).output:match("NVIM v[%d%.]+") or "versión desconocida"
+  vim.api.nvim_err_writeln("Esta config requiere Neovim 0.9+ (detectado: " .. ver .. "). Actualiza Neovim y reintenta.")
+  return
+end
+
 -- ~/.config/nvim/init.lua
 
 -- 1. Tecla líder (Espacio) - Debe configurarse antes de cargar plugins
