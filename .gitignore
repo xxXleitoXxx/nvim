@@ -1,0 +1,7 @@
+# Datos, estado y caché portable (plugins, mason, jdtls, lazy) - NO subir al repo
+/data/
+/state/
+/cache/
+
+# Cachés de Java JDTLS si alguien los deja dentro de config por error
+**/workspace-root/
