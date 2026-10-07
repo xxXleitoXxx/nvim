@@ -9,11 +9,16 @@ if not string.find(vim.env.PATH, mason_bin, 1, true) then
   vim.env.PATH = mason_bin .. ":" .. vim.env.PATH
 end
 
--- Configuración de JAVA_HOME para desarrollo en Spring Boot / Java
+-- Configuración de JAVA_HOME para desarrollo en Spring Boot / Java:
+-- si el servidor no lo exporta, lo deducimos del propio JDK del PATH.
 if not vim.env.JAVA_HOME or vim.env.JAVA_HOME == "" then
-  local java_home = "/usr/lib/jvm/java-17-openjdk-amd64"
-  if vim.fn.isdirectory(java_home) == 1 then
-    vim.env.JAVA_HOME = java_home
+  local javac = vim.fn.exepath("javac")
+  if javac ~= "" then
+    -- resolve() sigue los symlinks (/usr/bin/javac -> /usr/lib/jvm/<jdk>/bin/javac)
+    local home = vim.fn.fnamemodify(vim.fn.resolve(javac), ":h:h")
+    if vim.fn.isdirectory(home) == 1 then
+      vim.env.JAVA_HOME = home
+    end
   end
 end
 

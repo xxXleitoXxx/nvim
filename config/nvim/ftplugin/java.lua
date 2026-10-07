@@ -23,16 +23,37 @@ local launcher_jar = vim.fn.glob(mason_path .. "/plugins/org.eclipse.equinox.lau
 local lombok_jar = mason_path .. "/lombok.jar"
 local config_dir = mason_path .. "/config_linux"
 
--- JDTLS nuevo (2024+) exige Java 21 solo para CORRER el servidor.
--- Tu proyecto sigue en Java 17. Usamos el Java 21 que ya trae IntelliJ (/opt/idea/jbr),
--- sin instalar nada nuevo.
-local java_bin = "/opt/idea/jbr/bin/java"
-if vim.fn.executable(java_bin) == 0 then
-  java_bin = "/usr/lib/jvm/java-17-openjdk-amd64/bin/java"
+if launcher_jar == "" then
+  vim.notify("nvim-portable: JDTLS no está instalado todavía. Ejecuta :MasonInstall jdtls", vim.log.levels.WARN)
+  return
+end
+
+-- Java portable: se resuelve por JAVA_HOME o por el PATH del servidor,
+-- sin rutas fijas de un PC concreto.
+local java_home = vim.env.JAVA_HOME
+if java_home == nil or java_home == "" or vim.fn.executable(java_home .. "/bin/java") == 0 then
+  local javac = vim.fn.exepath("javac")
+  -- resolve() sigue los symlinks (update-alternatives) hasta el JDK real
+  java_home = javac ~= "" and vim.fn.fnamemodify(vim.fn.resolve(javac), ":h:h") or ""
+end
+
+local java_bin = java_home ~= "" and (java_home .. "/bin/java") or vim.fn.exepath("java")
+if java_bin == nil or java_bin == "" then
+  vim.notify("nvim-portable: no se encontró Java (define JAVA_HOME o instala default-jdk). JDTLS desactivado.", vim.log.levels.WARN)
+  return
 end
 if vim.fn.executable(java_bin) == 0 then
-  java_bin = "java"
+  java_bin = vim.fn.resolve(vim.fn.exepath("java"))
 end
+
+-- Versión del JDK para el runtime de JDTLS (2024+ necesita Java 21+ para CORRER el
+-- servidor, aunque tu proyecto puede seguir en 17).
+local java_version = vim.fn.system({ java_bin, "-version" }):match('version%s+"([%d%._]+)"') or ""
+local java_major = tonumber(java_version:match("^(%d+)")) or 0
+if java_major > 0 and java_major < 21 then
+  vim.notify("nvim-portable: Java " .. java_major .. " detectado; JDTLS recomienda 21+ para arrancar.", vim.log.levels.WARN)
+end
+local runtime_name = "JavaSE-" .. (java_major > 0 and tostring(java_major) or "17")
 
 -- Comando de arranque de JDTLS con soporte nativo de Lombok para Spring Boot
 local cmd = {
@@ -45,11 +66,19 @@ local cmd = {
   "--add-modules=ALL-SYSTEM",
   "--add-opens", "java.base/java.util=ALL-UNNAMED",
   "--add-opens", "java.base/java.lang=ALL-UNNAMED",
-  "-javaagent:" .. lombok_jar,
-  "-jar", launcher_jar,
-  "-configuration", config_dir,
-  "-data", workspace_dir,
 }
+
+-- El agente de Lombok solo si Mason lo trae (versiones antiguas no lo incluyen
+-- y un -javaagent inexistente impide que JDTLS arranque).
+if vim.fn.filereadable(lombok_jar) == 1 then
+  table.insert(cmd, "-javaagent:" .. lombok_jar)
+end
+table.insert(cmd, "-jar")
+table.insert(cmd, launcher_jar)
+table.insert(cmd, "-configuration")
+table.insert(cmd, config_dir)
+table.insert(cmd, "-data")
+table.insert(cmd, workspace_dir)
 
 local capabilities = require("cmp_nvim_lsp").default_capabilities()
 local extendedClientCapabilities = jdtls.extendedClientCapabilities
@@ -84,9 +113,11 @@ local on_attach = function(client, bufnr)
   map("n", "<leader>jn", jdtls.test_nearest_method, "Java: Testear método cercano")
 end
 
+local jdk_home = java_home ~= "" and java_home or vim.fn.fnamemodify(java_bin, ":h:h")
+
 local settings = {
   java = {
-    home = "/usr/lib/jvm/java-17-openjdk-amd64",
+    home = jdk_home,
     eclipse = { downloadSources = true },
     maven = { downloadSources = true },
     implementationsCodeLens = { enabled = true },
@@ -130,8 +161,9 @@ local settings = {
     configuration = {
       runtimes = {
         {
-          name = "JavaSE-17",
-          path = "/usr/lib/jvm/java-17-openjdk-amd64",
+          -- Runtime detectado en ESTA máquina (JAVA_HOME / PATH), no una ruta fija
+          name = runtime_name,
+          path = jdk_home,
           default = true,
         },
       },
