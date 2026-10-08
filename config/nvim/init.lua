@@ -13,6 +13,7 @@ vim.g.mapleader = " "
 vim.g.maplocalleader = " "
 
 -- 2. Cargar opciones base del sistema (indentación, portapapeles Linux, visualización)
+require("config.compat")
 require("config.options")
 
 -- 3. Cargar atajos de teclado ergonómicos

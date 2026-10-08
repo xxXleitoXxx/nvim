@@ -26,27 +26,49 @@ return {
       "windwp/nvim-ts-autotag",
     },
     config = function()
+      -- Treesitter compila los parsers con un compilador C. Si el servidor no lo tiene,
+      -- pedir ensure_installed lanzaba un error por cada parser; mejor un aviso claro
+      -- y se sigue con el resaltado por regex de Neovim.
+      local has_compiler = false
+      for _, cc in ipairs({ "cc", "gcc", "clang", "zig" }) do
+        if vim.fn.executable(cc) == 1 then
+          has_compiler = true
+          break
+        end
+      end
+      if not has_compiler then
+        vim.schedule(function()
+          vim.notify(
+            "nvim-portable: no hay compilador C, Treesitter no instalará parsers (resaltado reducido). "
+              .. "Instala build-essential (apt) o gcc (dnf).",
+            vim.log.levels.WARN
+          )
+        end)
+      end
+
       require("nvim-treesitter.configs").setup({
-        ensure_installed = {
-          "c",
-          "cpp",
-          "lua",
-          "vim",
-          "vimdoc",
-          "query",
-          "javascript",
-          "typescript",
-          "tsx",
-          "python",
-          "java",
-          "html",
-          "css",
-          "json",
-          "yaml",
-          "bash",
-          "markdown",
-          "markdown_inline",
-        },
+        ensure_installed = has_compiler
+          and {
+            "c",
+            "cpp",
+            "lua",
+            "vim",
+            "vimdoc",
+            "query",
+            "javascript",
+            "typescript",
+            "tsx",
+            "python",
+            "java",
+            "html",
+            "css",
+            "json",
+            "yaml",
+            "bash",
+            "markdown",
+            "markdown_inline",
+          }
+          or {},
         auto_install = true,
         highlight = {
           enable = true,

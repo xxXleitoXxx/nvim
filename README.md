@@ -105,5 +105,16 @@ Si tienes varios JDK, exporta `JAVA_HOME=/ruta/al/jdk21` antes de abrir.
 `export TERM=xterm-256color` o usa `terminal-guicolors`.
 
 **Los parsers de Treesitter no compilan** → falta un compilador (`build-essential` / `gcc`).
+Sin él la config avisa una vez y sigue con el resaltado por regex de Neovim.
+
+```
+No C compiler found! "cc", "gcc", "clang", "cl", "zig" are not executable.
+```
+→ `sudo apt install -y build-essential` (o `sudo dnf install -y gcc gcc-c++ make`), y borra
+`cache/nvim/treesitter` para que se reinstalen los parsers.
+
+**Avisos de APIs deprecadas en 0.12 al arrancar** → la config incluye un shim
+(`lua/config/compat.lua`) que redirige `vim.lsp.buf_get_clients()` a `vim.lsp.get_clients()`
+para los plugins que aún usan la API vieja.
 
 **Portapapeles (`"+y`, `"+p`) vacío** → falta `xclip` o `xsel` (o `wl-clipboard` en Wayland).
